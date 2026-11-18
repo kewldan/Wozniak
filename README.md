@@ -43,8 +43,11 @@ examples/       sample job commands
 config/         example configuration (no secrets)
 ```
 
-## Development workflow
+## Development
 
-- Work happens on short-lived branches (`feat/…`, `fix/…`, `docs/…`) merged
-  into `main` through pull requests.
+The development environment runs in a Dev Container (Docker + VS Code).
+[CONTRIBUTING.md](CONTRIBUTING.md) walks through the setup on macOS, Windows
+and Linux, and describes the branch, commit and pull request workflow.
+
+- `main` is protected: changes land only through pull requests with green CI.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).

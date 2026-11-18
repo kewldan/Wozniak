@@ -1,0 +1,40 @@
+{
+  "name": "Wozniak",
+  "dockerComposeFile": "compose.yaml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/wozniak",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [3000, 8080],
+  "portsAttributes": {
+    "3000": { "label": "web (Next.js)" },
+    "8080": { "label": "server (Go)" }
+  },
+  "postCreateCommand": "go mod download && cd web && bun install --frozen-lockfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "biomejs.biome",
+        "bradlc.vscode-tailwindcss",
+        "oven.bun-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        },
+        "[javascript][typescript][typescriptreact][json][jsonc][css]": {
+          "editor.defaultFormatter": "biomejs.biome",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports.biome": "explicit",
+            "quickfix.biome": "explicit"
+          }
+        }
+      }
+    }
+  }
+}
