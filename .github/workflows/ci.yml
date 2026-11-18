@@ -36,17 +36,12 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: pnpm/action-setup@v6.1.1
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
-          package_json_file: web/package.json
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 26
-          cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm build
+          bun-version-file: web/package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun --bun run build
 
   images:
     name: Docker images
