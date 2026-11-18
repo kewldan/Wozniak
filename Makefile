@@ -10,7 +10,7 @@ generate:
 	go tool sqlc generate
 
 web-dev:
-	pnpm --dir web dev
+	cd web && bun run dev
 
 up:
 	docker compose up -d --build
