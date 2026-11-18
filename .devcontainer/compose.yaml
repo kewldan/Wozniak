@@ -1,0 +1,34 @@
+# Development environment: a workspace container with the toolchain
+# and a throwaway PostgreSQL + TimescaleDB instance.
+# Credentials below are for local development only.
+name: wozniak-dev
+
+services:
+  workspace:
+    build: .
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/wozniak:cached
+    environment:
+      WOZNIAK_DATABASE_URL: postgres://wozniak:wozniak@db:5432/wozniak?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: timescale/timescaledb:2.32.0-pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wozniak
+      POSTGRES_PASSWORD: wozniak
+      POSTGRES_DB: wozniak
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wozniak -d wozniak"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:
