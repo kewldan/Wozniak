@@ -1,0 +1,12 @@
+# Example unit: runs job %i through the jobrun wrapper.
+# flock keeps at most one concurrent run per job.
+[Unit]
+Description=Wozniak job %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/wozniak/jobrun.env
+ExecStart=/usr/bin/flock --nonblock /run/lock/wozniak-%i.lock \
+  /usr/local/bin/jobrun %i -- /usr/local/lib/wozniak/jobs/%i

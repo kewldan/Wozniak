@@ -1,0 +1,12 @@
+# Example timer: starts job %i every 5 minutes.
+# Enable with: systemctl enable --now jobrun@<job-id>.timer
+[Unit]
+Description=Schedule for Wozniak job %i
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
