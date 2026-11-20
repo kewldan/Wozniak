@@ -1,0 +1,9 @@
+# Go code generated from openapi.yaml: models, net/http server and client.
+# Run `make generate` after every change to the spec.
+package: apigen
+output: internal/apigen/apigen.gen.go
+generate:
+  models: true
+  std-http-server: true
+  strict-server: true
+  client: true

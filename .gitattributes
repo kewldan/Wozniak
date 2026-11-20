@@ -1,2 +1,5 @@
 * text=auto eol=lf
 *.sh text eol=lf
+
+# Generated code: collapsed in GitHub diffs.
+internal/apigen/*.gen.go linguist-generated=true
