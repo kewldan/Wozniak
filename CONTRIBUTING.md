@@ -284,7 +284,10 @@ Inside the Dev Container, from the repository root:
 |------|---------|
 | Build Go binaries into `bin/` | `make build` |
 | Run Go tests | `make test` |
-| Regenerate database code (sqlc) | `make generate` |
+| Regenerate API code from `api/openapi.yaml` | `make generate-api` |
+| Regenerate database code (sqlc) | `make generate-db` |
+| Regenerate all code | `make generate` |
+| Lint the API spec | `make api-lint` |
 | Web panel dev server (port 3000) | `make web-dev` |
 | Lint and check formatting (web) | `cd web && bun run lint` |
 | Fix formatting and imports (web) | `cd web && bun run format` |

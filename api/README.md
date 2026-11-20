@@ -17,11 +17,18 @@ unchanged, so the same paths work through the Compose stack
 | `GET`  | `/api/v1/runs/{run_id}` | panel | Run details with both events |
 | `GET`  | `/api/v1/health` | Docker, monitoring | Server and database are up |
 
-Lint the spec after every change:
+After every change to the spec, lint it and regenerate the Go code:
 
 ```bash
 make api-lint
 ```
+
+```bash
+make generate-api
+```
+
+Commit the regenerated `internal/apigen/apigen.gen.go` together with the
+spec.
 
 ## Events
 
@@ -155,6 +162,38 @@ Read endpoints are open for now; panel sign-in is decided in M3.
 whose finish came after `finish_due_at` keeps its real result and gets
 `"late": true`. The rules that derive these values are in the state model
 (issue #10).
+
+## Generated code
+
+### Go
+
+[oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) turns the spec
+into package `internal/apigen` (settings in
+[`oapi-codegen.yaml`](oapi-codegen.yaml)). It is a Go tool dependency, so
+`go tool oapi-codegen` needs no separate install. Do not edit the generated
+file by hand.
+
+- **Models:** request and response structs. Nullable fields are pointers
+  (`DurationMs *int64`), so `nil` is sent as JSON `null`.
+- **Server:** implement `StrictServerInterface`, one typed method per
+  operation, and mount it on a standard `http.ServeMux`:
+
+  ```go
+  strict := apigen.NewStrictHandler(srv, nil)
+  handler := apigen.HandlerFromMux(strict, http.NewServeMux())
+  ```
+
+  The compiler then reports any operation the server does not implement.
+- **Client:** `apigen.NewClientWithResponses(baseURL, …)` for jobrun and
+  tests. jobrun can also take just the `StartEvent` and `FinishEvent` structs
+  and send them with its own HTTP client.
+- **Events:** `apigen.Event` holds either event; use `Discriminator()`, then
+  `AsStartEvent()` or `AsFinishEvent()`.
+
+The generated code does not check `required`, `pattern`, `maxLength` or
+value ranges. The server validates event fields itself (issue #22).
+
+### TypeScript
 
 TypeScript types for the panel can be generated from the spec:
 

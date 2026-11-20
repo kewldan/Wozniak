@@ -1,4 +1,4 @@
-.PHONY: build test generate api-lint web-dev up down
+.PHONY: build test generate generate-api generate-db api-lint web-dev up down
 
 build:
 	go build -o bin/ ./cmd/...
@@ -6,7 +6,12 @@ build:
 test:
 	go test ./...
 
-generate:
+generate: generate-api generate-db
+
+generate-api:
+	go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+
+generate-db:
 	go tool sqlc generate
 
 api-lint:
