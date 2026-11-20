@@ -58,3 +58,4 @@ and Linux, and describes the branch, commit and pull request workflow.
 | Name          | GitHub nickname | Responsibility scope |
 | ------------- | --------------- | -------------------- |
 | Fedor Fomenko | MrFome14        | Web development      |
+| Petr Khrapov | MrFome14        | Backend-developer     |
