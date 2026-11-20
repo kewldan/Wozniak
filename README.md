@@ -34,6 +34,7 @@ A web panel shows the current state of every job.
 ## Repository layout
 
 ```
+api/            HTTP API contract (OpenAPI) and request examples
 cmd/            entry points (server, jobrun)
 internal/       server and wrapper packages
 db/             SQL migrations and sqlc queries

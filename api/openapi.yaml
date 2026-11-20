@@ -1,0 +1,904 @@
+openapi: 3.1.0
+info:
+  title: Wozniak API
+  version: 1.0.0
+  summary: Run events from jobrun and read endpoints for the web panel.
+  description: |
+    Contract between the `jobrun` wrapper, the central server and the web
+    panel. See `api/README.md` for request examples and delivery rules.
+
+    ## Clocks
+
+    Every event carries `occurred_at`, the wrapper's wall clock. The server
+    stores it for display only. Deadlines and states are computed from the
+    server's own clock: the `received_at` time of each event and the current
+    server time. The command duration (`duration_ms`) is measured by the
+    wrapper with a monotonic clock.
+
+    ## States
+
+    `JobState` and `RunStatus` values are fixed here. The rules that derive
+    them from events and deadlines are described in the state model
+    document (issue #10).
+
+    ## Conventions
+
+    - Timestamps are RFC 3339 strings in UTC, for example
+      `2026-11-20T12:00:00.123Z`.
+    - Durations in job settings are whole seconds; command durations are
+      milliseconds.
+    - Request bodies may contain unknown fields; the server ignores them, so
+      a newer `jobrun` keeps working with an older server.
+    - Errors use `application/problem+json` (RFC 9457) with a stable `code`.
+
+    ## Authentication
+
+    Only `POST /api/v1/events` requires a sender token. Read endpoints are
+    open in v1: the panel is reached through nginx on a trusted network.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: http://localhost:8080
+    description: Local Docker Compose stack behind nginx
+tags:
+  - name: events
+    description: Event ingestion from jobrun.
+  - name: jobs
+    description: Jobs and their current state.
+  - name: runs
+    description: Run history and run details.
+  - name: service
+    description: Service endpoints.
+
+paths:
+  /api/v1/events:
+    post:
+      tags: [events]
+      operationId: postEvent
+      summary: Report a run start or finish
+      description: |
+        Records one `start` or `finish` event of a run.
+
+        The call is idempotent per (`run_id`, `type`): a repeated event is
+        answered with `200` and `duplicate: true`, and the first stored copy
+        is kept. The wrapper can therefore retry safely after a timeout.
+
+        Events may arrive in any order. A `finish` without a prior `start`
+        is accepted and creates the run: a lost start does not prove the
+        command never ran.
+
+        Body size is limited to 16 KiB.
+      security:
+        - senderToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+            examples:
+              start:
+                summary: Run started
+                value:
+                  type: start
+                  job_id: nightly-backup
+                  run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                  occurred_at: '2026-11-20T03:00:00.412Z'
+                  host: vm-01
+              finishSuccess:
+                summary: Run finished successfully
+                value:
+                  type: finish
+                  job_id: nightly-backup
+                  run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                  occurred_at: '2026-11-20T03:02:41.907Z'
+                  host: vm-01
+                  exit_code: 0
+                  duration_ms: 161495
+              finishFailure:
+                summary: Run failed
+                value:
+                  type: finish
+                  job_id: nightly-backup
+                  run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                  occurred_at: '2026-11-20T03:00:05.020Z'
+                  host: vm-01
+                  exit_code: 2
+                  duration_ms: 4608
+                  message: 'pg_dump: connection to server failed'
+              commandNotFound:
+                summary: Command could not be started
+                value:
+                  type: finish
+                  job_id: nightly-backup
+                  run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                  occurred_at: '2026-11-20T03:00:00.415Z'
+                  host: vm-01
+                  exit_code: 127
+                  duration_ms: 0
+                  message: 'exec: "backup.sh": executable file not found'
+      responses:
+        '201':
+          description: Event stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReceipt'
+              example:
+                run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                type: start
+                received_at: '2026-11-20T03:00:00.530Z'
+                duplicate: false
+        '200':
+          description: Same (`run_id`, `type`) was already stored; nothing changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReceipt'
+              example:
+                run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                type: start
+                received_at: '2026-11-20T03:00:00.530Z'
+                duplicate: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: The `run_id` already belongs to a different job.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                title: Run belongs to another job
+                status: 409
+                code: run_job_mismatch
+                detail: run 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61 belongs to job db-export
+        '413':
+          description: |
+            Body is larger than 16 KiB. Bodies over 64 KiB are rejected by
+            nginx with an HTML page instead of this JSON.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                title: Payload too large
+                status: 413
+                code: payload_too_large
+                detail: request body exceeds 16384 bytes
+        '415':
+          description: '`Content-Type` is not `application/json`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                title: Unsupported media type
+                status: 415
+                code: unsupported_media_type
+                detail: expected application/json
+        '422':
+          description: The job is not in the server configuration.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                title: Unknown job
+                status: 422
+                code: unknown_job
+                detail: job "nightly-bakcup" is not configured
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/v1/jobs:
+    get:
+      tags: [jobs]
+      operationId: listJobs
+      summary: List jobs with their current state
+      description: |
+        Returns every configured job, sorted by `id`, with its current
+        state and its latest run. The list is small, so it is not paginated.
+      responses:
+        '200':
+          description: All configured jobs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+              example:
+                server_time: '2026-11-20T12:00:00.000Z'
+                items:
+                  - id: nightly-backup
+                    name: Nightly database backup
+                    state: succeeded
+                    state_since: '2026-11-20T03:02:42.010Z'
+                    monitoring_since: '2026-11-18T10:00:00.000Z'
+                    settings:
+                      start_interval_seconds: 86400
+                      max_duration_seconds: 1800
+                      start_grace_seconds: 600
+                    next_start_due_at: '2026-11-21T03:10:00.530Z'
+                    last_run:
+                      run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                      job_id: nightly-backup
+                      status: succeeded
+                      late: false
+                      started_at: '2026-11-20T03:00:00.530Z'
+                      finished_at: '2026-11-20T03:02:42.010Z'
+                      finish_due_at: '2026-11-20T03:30:00.530Z'
+                      duration_ms: 161495
+                      exit_code: 0
+                  - id: report-export
+                    name: Hourly report export
+                    state: start_overdue
+                    state_since: '2026-11-20T11:15:00.000Z'
+                    monitoring_since: '2026-11-18T10:00:00.000Z'
+                    settings:
+                      start_interval_seconds: 3600
+                      max_duration_seconds: 300
+                      start_grace_seconds: 300
+                    next_start_due_at: '2026-11-20T11:15:00.000Z'
+                    last_run:
+                      run_id: 019aa3b2-1d40-7e8f-a0c4-6b7e9d2f1a35
+                      job_id: report-export
+                      status: failed
+                      late: false
+                      started_at: '2026-11-20T10:10:00.000Z'
+                      finished_at: '2026-11-20T10:10:03.250Z'
+                      finish_due_at: '2026-11-20T10:15:00.000Z'
+                      duration_ms: 3180
+                      exit_code: 1
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/{job_id}:
+    get:
+      tags: [jobs]
+      operationId: getJob
+      summary: Get one job with its current state
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+              example:
+                id: nightly-backup
+                name: Nightly database backup
+                state: running
+                state_since: '2026-11-20T03:00:00.530Z'
+                monitoring_since: '2026-11-18T10:00:00.000Z'
+                settings:
+                  start_interval_seconds: 86400
+                  max_duration_seconds: 1800
+                  start_grace_seconds: 600
+                next_start_due_at: '2026-11-21T03:10:00.530Z'
+                last_run:
+                  run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                  job_id: nightly-backup
+                  status: running
+                  late: false
+                  started_at: '2026-11-20T03:00:00.530Z'
+                  finished_at: null
+                  finish_due_at: '2026-11-20T03:30:00.530Z'
+                  duration_ms: null
+                  exit_code: null
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/jobs/{job_id}/runs:
+    get:
+      tags: [runs]
+      operationId: listJobRuns
+      summary: List runs of a job, newest first
+      description: |
+        Runs are ordered by the server time the run was first seen (the
+        `received_at` of whichever event came first), newest first. Use
+        `next_cursor` from the response to fetch the next page; it is `null`
+        on the last page.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - name: limit
+          in: query
+          description: Page size.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous `next_cursor`.
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        '200':
+          description: One page of runs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPage'
+              example:
+                items:
+                  - run_id: 019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61
+                    job_id: nightly-backup
+                    status: succeeded
+                    late: false
+                    started_at: '2026-11-20T03:00:00.530Z'
+                    finished_at: '2026-11-20T03:02:42.010Z'
+                    finish_due_at: '2026-11-20T03:30:00.530Z'
+                    duration_ms: 161495
+                    exit_code: 0
+                  - run_id: 019a9c8a-2b11-7f05-8d3a-c1e47b90f2d8
+                    job_id: nightly-backup
+                    status: succeeded
+                    late: true
+                    started_at: '2026-11-19T03:00:00.480Z'
+                    finished_at: '2026-11-19T03:41:12.300Z'
+                    finish_due_at: '2026-11-19T03:30:00.480Z'
+                    duration_ms: 2471790
+                    exit_code: 0
+                  - run_id: 019a9763-5e2c-7a90-b4f1-08d2e6c3a7b4
+                    job_id: nightly-backup
+                    status: finish_overdue
+                    late: true
+                    started_at: '2026-11-18T03:00:00.505Z'
+                    finished_at: null
+                    finish_due_at: '2026-11-18T03:30:00.505Z'
+                    duration_ms: null
+                    exit_code: null
+                next_cursor: eyJ0IjoiMjAyNi0xMS0xOFQwMzowMDowMC41MDVaIn0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/runs/{run_id}:
+    get:
+      tags: [runs]
+      operationId: getRun
+      summary: Get run details with both events
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/RunId'
+      responses:
+        '200':
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunDetail'
+              example:
+                run_id: 019a9c8a-2b11-7f05-8d3a-c1e47b90f2d8
+                job_id: nightly-backup
+                status: succeeded
+                late: true
+                started_at: '2026-11-19T03:00:00.480Z'
+                finished_at: '2026-11-19T03:41:12.300Z'
+                finish_due_at: '2026-11-19T03:30:00.480Z'
+                duration_ms: 2471790
+                exit_code: 0
+                start:
+                  occurred_at: '2026-11-19T03:00:00.402Z'
+                  received_at: '2026-11-19T03:00:00.480Z'
+                  host: vm-01
+                  message: null
+                finish:
+                  occurred_at: '2026-11-19T03:41:12.192Z'
+                  received_at: '2026-11-19T03:41:12.300Z'
+                  host: vm-01
+                  message: null
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/health:
+    get:
+      tags: [service]
+      operationId: getHealth
+      summary: Liveness and database check
+      security: []
+      responses:
+        '200':
+          description: Server and database are up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+                server_time: '2026-11-20T12:00:00.000Z'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+components:
+  securitySchemes:
+    senderToken:
+      type: http
+      scheme: bearer
+      description: |
+        Sender token from the server configuration (issue #9), sent as
+        `Authorization: Bearer <token>`. Tokens never appear in Git or in
+        logs.
+
+  parameters:
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/JobId'
+
+  schemas:
+    JobId:
+      type: string
+      description: |
+        Permanent job ID from the server configuration. Matches the systemd
+        instance name (`jobrun@<job_id>.timer`).
+      pattern: '^[a-z0-9][a-z0-9_-]{0,62}$'
+      examples: [nightly-backup]
+
+    RunId:
+      type: string
+      format: uuid
+      description: |
+        Generated by jobrun before the command starts (UUIDv7 recommended)
+        and sent in both events of the run.
+      examples: [019aa1f0-7c3e-7d2a-9b1e-3f5c2a8d4e61]
+
+    Message:
+      type: string
+      maxLength: 1024
+      description: |
+        Short human-readable note, for example why the command could not be
+        started or the last line of its error output.
+
+    Event:
+      description: A run event, discriminated by `type`.
+      oneOf:
+        - $ref: '#/components/schemas/StartEvent'
+        - $ref: '#/components/schemas/FinishEvent'
+      discriminator:
+        propertyName: type
+        mapping:
+          start: '#/components/schemas/StartEvent'
+          finish: '#/components/schemas/FinishEvent'
+
+    EventBase:
+      type: object
+      required: [type, job_id, run_id, occurred_at]
+      properties:
+        type:
+          type: string
+          enum: [start, finish]
+        job_id:
+          $ref: '#/components/schemas/JobId'
+        run_id:
+          $ref: '#/components/schemas/RunId'
+        occurred_at:
+          type: string
+          format: date-time
+          description: |
+            Wrapper wall-clock time of the event. Stored for display only;
+            never rejected for clock skew and never used for deadlines.
+        host:
+          type: string
+          maxLength: 253
+          description: Hostname where jobrun runs.
+        message:
+          $ref: '#/components/schemas/Message'
+
+    StartEvent:
+      description: Sent right before the command is started.
+      allOf:
+        - $ref: '#/components/schemas/EventBase'
+        - type: object
+          properties:
+            type:
+              const: start
+
+    FinishEvent:
+      description: |
+        Sent after the command exits, or right after it fails to start.
+      allOf:
+        - $ref: '#/components/schemas/EventBase'
+        - type: object
+          required: [exit_code, duration_ms]
+          properties:
+            type:
+              const: finish
+            exit_code:
+              type: integer
+              minimum: 0
+              maximum: 255
+              description: |
+                Exit code of the command, following shell conventions:
+                `128 + N` when killed by signal N, `127` when the command was
+                not found, `126` when it could not be executed.
+            duration_ms:
+              type: integer
+              format: int64
+              minimum: 0
+              description: Command run time measured by jobrun (monotonic clock).
+
+    EventReceipt:
+      type: object
+      required: [run_id, type, received_at, duplicate]
+      properties:
+        run_id:
+          $ref: '#/components/schemas/RunId'
+        type:
+          type: string
+          enum: [start, finish]
+        received_at:
+          type: string
+          format: date-time
+          description: Server time when this event was first stored.
+        duplicate:
+          type: boolean
+          description: True when this (`run_id`, `type`) was already stored.
+
+    JobState:
+      type: string
+      description: |
+        Current state of a job:
+        - `pending` — monitoring started, no runs yet, first start not due.
+        - `running` — latest run started and its finish is not due yet.
+        - `succeeded` — latest run finished with exit code 0.
+        - `failed` — latest run finished with a non-zero exit code.
+        - `finish_overdue` — no finish confirmation in time
+          («нет подтверждения завершения в срок»).
+        - `start_overdue` — no expected start («нет ожидаемого запуска»).
+
+        A late finish is shown as `succeeded`/`failed` with `last_run.late`.
+      enum:
+        - pending
+        - running
+        - succeeded
+        - failed
+        - finish_overdue
+        - start_overdue
+
+    RunStatus:
+      type: string
+      description: |
+        Status of one run:
+        - `running` — started, finish not received, not due yet.
+        - `succeeded` — finished with exit code 0.
+        - `failed` — finished with a non-zero exit code.
+        - `finish_overdue` — finish not received by `finish_due_at`.
+          Turns into `succeeded`/`failed` with `late: true` if the finish
+          arrives later.
+      enum:
+        - running
+        - succeeded
+        - failed
+        - finish_overdue
+
+    JobSettings:
+      type: object
+      description: Deadline settings from the server configuration (issue #9).
+      required: [start_interval_seconds, max_duration_seconds, start_grace_seconds]
+      properties:
+        start_interval_seconds:
+          type: integer
+          minimum: 1
+          description: Expected maximum interval between run starts.
+        max_duration_seconds:
+          type: integer
+          minimum: 1
+          description: Allowed run duration before the finish is overdue.
+        start_grace_seconds:
+          type: integer
+          minimum: 0
+          description: Extra margin before a missing start is reported.
+
+    Job:
+      type: object
+      required:
+        - id
+        - name
+        - state
+        - state_since
+        - monitoring_since
+        - settings
+        - next_start_due_at
+        - last_run
+      properties:
+        id:
+          $ref: '#/components/schemas/JobId'
+        name:
+          type: string
+          maxLength: 200
+        state:
+          $ref: '#/components/schemas/JobState'
+        state_since:
+          type: string
+          format: date-time
+          description: Server time when the job entered the current state.
+        monitoring_since:
+          type: string
+          format: date-time
+          description: |
+            Server time when monitoring of this job was enabled. Deadlines of
+            a job without runs are counted from here.
+        settings:
+          $ref: '#/components/schemas/JobSettings'
+        next_start_due_at:
+          type: string
+          format: date-time
+          description: |
+            Server time after which a missing start makes the job
+            `start_overdue` (interval plus grace).
+        last_run:
+          description: Latest run, or `null` if the job has no runs yet.
+          oneOf:
+            - $ref: '#/components/schemas/Run'
+            - type: 'null'
+
+    JobList:
+      type: object
+      required: [items, server_time]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        server_time:
+          type: string
+          format: date-time
+          description: Current server time, for "N minutes ago" labels.
+
+    Run:
+      type: object
+      required:
+        - run_id
+        - job_id
+        - status
+        - late
+        - started_at
+        - finished_at
+        - finish_due_at
+        - duration_ms
+        - exit_code
+      properties:
+        run_id:
+          $ref: '#/components/schemas/RunId'
+        job_id:
+          $ref: '#/components/schemas/JobId'
+        status:
+          $ref: '#/components/schemas/RunStatus'
+        late:
+          type: boolean
+          description: True when the finish was not received by `finish_due_at`.
+        started_at:
+          type: [string, 'null']
+          format: date-time
+          description: Server time the start event was received; `null` if it was lost.
+        finished_at:
+          type: [string, 'null']
+          format: date-time
+          description: Server time the finish event was received; `null` if not yet.
+        finish_due_at:
+          type: [string, 'null']
+          format: date-time
+          description: |
+            Server time by which the finish is expected (`started_at` plus
+            `max_duration_seconds`); `null` when there is no start.
+        duration_ms:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+          description: Command run time measured by jobrun; `null` until finished.
+        exit_code:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 255
+          description: Command exit code; `null` until finished.
+
+    EventInfo:
+      type: object
+      required: [occurred_at, received_at, host, message]
+      properties:
+        occurred_at:
+          type: string
+          format: date-time
+          description: Wrapper wall-clock time.
+        received_at:
+          type: string
+          format: date-time
+          description: Server time.
+        host:
+          type: [string, 'null']
+        message:
+          type: [string, 'null']
+          maxLength: 1024
+
+    RunDetail:
+      allOf:
+        - $ref: '#/components/schemas/Run'
+        - type: object
+          required: [start, finish]
+          properties:
+            start:
+              description: Start event, or `null` if it was not received.
+              oneOf:
+                - $ref: '#/components/schemas/EventInfo'
+                - type: 'null'
+            finish:
+              description: Finish event, or `null` if it was not received.
+              oneOf:
+                - $ref: '#/components/schemas/EventInfo'
+                - type: 'null'
+
+    RunPage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Run'
+        next_cursor:
+          type: [string, 'null']
+          description: Cursor for the next page; `null` on the last page.
+
+    Health:
+      type: object
+      required: [status, server_time]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        server_time:
+          type: string
+          format: date-time
+
+    ErrorCode:
+      type: string
+      description: Stable machine-readable error code.
+      enum:
+        - invalid_json
+        - validation_failed
+        - invalid_cursor
+        - unauthorized
+        - forbidden
+        - not_found
+        - run_job_mismatch
+        - payload_too_large
+        - unsupported_media_type
+        - unknown_job
+        - internal
+        - unavailable
+
+    Problem:
+      type: object
+      description: Error response, RFC 9457 problem details.
+      required: [title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+        title:
+          type: string
+          description: Short summary of the error class.
+        status:
+          type: integer
+          description: HTTP status code, repeated for convenience.
+        detail:
+          type: string
+          description: Explanation of this occurrence.
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        errors:
+          type: array
+          description: Field errors for `validation_failed`.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                description: JSON path of the field, for example `exit_code`.
+              message:
+                type: string
+
+  responses:
+    BadRequest:
+      description: Malformed JSON, invalid fields or an invalid cursor.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Validation failed
+            status: 400
+            code: validation_failed
+            errors:
+              - field: exit_code
+                message: required for finish events
+              - field: run_id
+                message: must be a UUID
+    Unauthorized:
+      description: Missing or unknown sender token.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          example: Bearer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Unauthorized
+            status: 401
+            code: unauthorized
+            detail: missing or invalid bearer token
+    Forbidden:
+      description: The token is valid but not allowed to report this job.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Forbidden
+            status: 403
+            code: forbidden
+            detail: token is not allowed for job nightly-backup
+    NotFound:
+      description: The job or run does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Not found
+            status: 404
+            code: not_found
+            detail: job "nightly-bakcup" not found
+    InternalError:
+      description: Unexpected server error. Safe to retry.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Internal server error
+            status: 500
+            code: internal
+    Unavailable:
+      description: The database is unreachable. Safe to retry.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Service unavailable
+            status: 503
+            code: unavailable
+            detail: database is unreachable
+
+security:
+  - {}
