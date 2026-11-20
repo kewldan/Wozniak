@@ -1,0 +1,25 @@
+# Copy to config/jobs.yaml. Format: docs/configuration.md.
+jobs:
+  - id: demo-success
+    name: Demo job that succeeds
+    start_interval: 5m
+    max_duration: 1m
+    start_grace: 1m
+
+  - id: demo-failure
+    name: Demo job that fails
+    start_interval: 5m
+    max_duration: 1m
+    start_grace: 1m
+
+  - id: demo-slow
+    name: Demo job that runs too long
+    start_interval: 5m
+    max_duration: 30s
+    start_grace: 1m
+
+  - id: nightly-backup
+    name: Nightly database backup
+    start_interval: 24h
+    max_duration: 30m
+    start_grace: 10m
