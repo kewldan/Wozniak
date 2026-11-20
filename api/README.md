@@ -134,8 +134,11 @@ Content-Type: application/problem+json
   `limit` is 1–100, default 20.
 - `GET /api/v1/runs/{run_id}` adds both events with wrapper and server times,
   hostname and message.
+- `duration_ms` of a run is shown only when both events were received. The
+  value from a finish without a start is still available as
+  `finish.reported_duration_ms` in the run details.
 
-Read endpoints need no token in v1.
+Read endpoints are open for now; panel sign-in is decided in M3.
 
 ### States
 

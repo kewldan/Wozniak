@@ -34,7 +34,7 @@ info:
     ## Authentication
 
     Only `POST /api/v1/events` requires a sender token. Read endpoints are
-    open in v1: the panel is reached through nginx on a trusted network.
+    open for now; panel sign-in is decided in M3.
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
@@ -407,6 +407,7 @@ paths:
                   received_at: '2026-11-19T03:41:12.300Z'
                   host: vm-01
                   message: null
+                  reported_duration_ms: 2471790
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -709,7 +710,10 @@ components:
           type: [integer, 'null']
           format: int64
           minimum: 0
-          description: Command run time measured by jobrun; `null` until finished.
+          description: |
+            Command run time measured by jobrun. Shown only when both events
+            were received; `null` otherwise. The raw value of a finish
+            without a start is in `RunDetail.finish.reported_duration_ms`.
         exit_code:
           type: [integer, 'null']
           minimum: 0
@@ -734,6 +738,18 @@ components:
           type: [string, 'null']
           maxLength: 1024
 
+    FinishEventInfo:
+      allOf:
+        - $ref: '#/components/schemas/EventInfo'
+        - type: object
+          required: [reported_duration_ms]
+          properties:
+            reported_duration_ms:
+              type: integer
+              format: int64
+              minimum: 0
+              description: '`duration_ms` exactly as sent in the finish event.'
+
     RunDetail:
       allOf:
         - $ref: '#/components/schemas/Run'
@@ -748,7 +764,7 @@ components:
             finish:
               description: Finish event, or `null` if it was not received.
               oneOf:
-                - $ref: '#/components/schemas/EventInfo'
+                - $ref: '#/components/schemas/FinishEventInfo'
                 - type: 'null'
 
     RunPage:
