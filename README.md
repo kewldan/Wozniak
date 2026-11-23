@@ -51,3 +51,9 @@ and Linux, and describes the branch, commit and pull request workflow.
 
 - `main` is protected: changes land only through pull requests with green CI.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+
+## Project Team
+
+| GitHub Nickname | ISU ID | Email |
+| :-------- | :----- | :-----------------|
+| Kalaymaga | 654321 | cotlu@example.com |
