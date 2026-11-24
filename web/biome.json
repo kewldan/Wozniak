@@ -6,6 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
+    "includes": ["**", "!src/lib/api-types.ts"],
     "ignoreUnknown": false
   },
   "formatter": {
