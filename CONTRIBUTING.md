@@ -297,6 +297,24 @@ Inside the Dev Container, from the repository root:
 
 Files are formatted on save: Go with `gofmt`, the web panel with Biome.
 
+### Web panel data
+
+The panel uses contract-shaped mock data by default. Run `make web-dev`
+and open <http://localhost:3000> to browse jobs, run history and run
+details without the Go API.
+
+Once the Go API is running, set `NEXT_PUBLIC_API_MODE=real` in the root
+`.env` and rebuild the Compose stack with `docker compose up -d --build`.
+Open the panel through nginx (port 8080 by default), which forwards
+`/api/` to Go. The setting is read when the web image is built.
+
+Regenerate the panel's TypeScript API types after OpenAPI changes:
+
+```bash
+cd web
+bunx openapi-typescript ../api/openapi.yaml -o src/lib/api-types.ts
+```
+
 ### Running the full stack
 
 To see the system the way it runs in production (nginx + server + web +
