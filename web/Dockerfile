@@ -10,6 +10,8 @@ FROM oven/bun:1.4.4-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_API_MODE=mock
+ENV NEXT_PUBLIC_API_MODE=${NEXT_PUBLIC_API_MODE}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun --bun run build
 
