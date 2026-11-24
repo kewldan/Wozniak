@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import { ApiError } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
 
-type State = components["schemas"]["JobState"] | components["schemas"]["RunStatus"];
+type State =
+  | components["schemas"]["JobState"]
+  | components["schemas"]["RunStatus"];
 
 const statuses: Record<State, { label: string; color: string }> = {
   pending: { label: "Ожидает запуска", color: "bg-slate-100 text-slate-700" },
@@ -22,7 +24,9 @@ const statuses: Record<State, { label: string; color: string }> = {
 export function StatusBadge({ state }: { state: State }) {
   const { label, color } = statuses[state];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium text-xs ${color}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${color}`}
+    >
       <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {label}
     </span>

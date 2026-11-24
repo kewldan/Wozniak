@@ -12,7 +12,9 @@ export class ApiError extends Error {
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path, { headers: { Accept: "application/json" } });
+  const response = await fetch(path, {
+    headers: { Accept: "application/json" },
+  });
   if (!response.ok) {
     throw new ApiError(response.status);
   }
@@ -41,7 +43,9 @@ export async function getJobRuns(
 ): Promise<Schemas["RunPage"]> {
   if (!useMocks) {
     const path = `${jobsPath}/${encodeURIComponent(jobId)}/runs`;
-    return getJson(cursor ? `${path}?${new URLSearchParams({ cursor })}` : path);
+    return getJson(
+      cursor ? `${path}?${new URLSearchParams({ cursor })}` : path,
+    );
   }
 
   await getJob(jobId);

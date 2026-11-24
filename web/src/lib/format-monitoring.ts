@@ -11,5 +11,7 @@ export function formatTime(value: string | null) {
 }
 
 export function formatDuration(milliseconds: number | null) {
-  return milliseconds === null ? "—" : `${seconds.format(milliseconds / 1000)} с`;
+  return milliseconds === null
+    ? "—"
+    : `${seconds.format(milliseconds / 1000)} с`;
 }
