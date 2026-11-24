@@ -2,7 +2,11 @@ module github.com/kewldan/Wozniak
 
 go 1.27
 
-require github.com/oapi-codegen/runtime v1.9.0
+require (
+	github.com/google/uuid v1.6.0
+	github.com/jackc/pgx/v5 v5.13.0
+	github.com/oapi-codegen/runtime v1.9.0
+)
 
 require (
 	cel.dev/expr v0.25.3 // indirect
@@ -19,11 +23,9 @@ require (
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-sql-driver/mysql v1.10.1 // indirect
 	github.com/google/cel-go v0.31.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.13.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/ncruces/go-sqlite3 v0.32.0 // indirect
