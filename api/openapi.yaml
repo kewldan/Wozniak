@@ -145,8 +145,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '409':
           description: The `run_id` already belongs to a different job.
           content:
@@ -438,9 +436,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Sender token from the server configuration (issue #9), sent as
-        `Authorization: Bearer <token>`. Tokens never appear in Git or in
-        logs.
+        Shared sender token (`WOZNIAK_TOKEN`, see docs/configuration.md),
+        sent as `Authorization: Bearer <token>`. One token is valid for all
+        jobs. It never appears in Git or in logs.
 
   parameters:
     JobId:
@@ -798,7 +796,6 @@ components:
         - validation_failed
         - invalid_cursor
         - unauthorized
-        - forbidden
         - not_found
         - run_job_mismatch
         - payload_too_large
@@ -857,7 +854,7 @@ components:
               - field: run_id
                 message: must be a UUID
     Unauthorized:
-      description: Missing or unknown sender token.
+      description: Missing or wrong sender token.
       headers:
         WWW-Authenticate:
           schema:
@@ -872,17 +869,6 @@ components:
             status: 401
             code: unauthorized
             detail: missing or invalid bearer token
-    Forbidden:
-      description: The token is valid but not allowed to report this job.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-          example:
-            title: Forbidden
-            status: 403
-            code: forbidden
-            detail: token is not allowed for job nightly-backup
     NotFound:
       description: The job or run does not exist.
       content:

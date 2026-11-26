@@ -38,6 +38,7 @@ api/            HTTP API contract (OpenAPI) and request examples
 cmd/            entry points (server, jobrun)
 internal/       server and wrapper packages
 db/             SQL migrations and sqlc queries
+docs/           design documents (configuration, state model)
 web/            web panel
 deploy/         nginx config, systemd units
 examples/       sample job commands
