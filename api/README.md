@@ -122,8 +122,7 @@ Content-Type: application/problem+json
 | 201 | — | — | Stored |
 | 200 | — | — | Duplicate, already stored |
 | 400 | `invalid_json`, `validation_failed` | no | Bad body |
-| 401 | `unauthorized` | no | Missing or unknown token |
-| 403 | `forbidden` | no | Token not allowed for this job |
+| 401 | `unauthorized` | no | Missing or wrong token |
 | 409 | `run_job_mismatch` | no | `run_id` belongs to another job |
 | 413 | `payload_too_large` | no | Body over 16 KiB |
 | 415 | `unsupported_media_type` | no | Not `application/json` |

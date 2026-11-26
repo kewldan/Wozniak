@@ -23,7 +23,6 @@ import (
 
 // Defines values for ErrorCode.
 const (
-	ErrorCodeForbidden            ErrorCode = "forbidden"
 	ErrorCodeInternal             ErrorCode = "internal"
 	ErrorCodeInvalidCursor        ErrorCode = "invalid_cursor"
 	ErrorCodeInvalidJson          ErrorCode = "invalid_json"
@@ -40,8 +39,6 @@ const (
 // Valid indicates whether the value is a known member of the ErrorCode enum.
 func (e ErrorCode) Valid() bool {
 	switch e {
-	case ErrorCodeForbidden:
-		return true
 	case ErrorCodeInternal:
 		return true
 	case ErrorCodeInvalidCursor:
@@ -566,9 +563,6 @@ type StartEvent struct {
 
 // BadRequest Error response, RFC 9457 problem details.
 type BadRequest = Problem
-
-// Forbidden Error response, RFC 9457 problem details.
-type Forbidden = Problem
 
 // InternalError Error response, RFC 9457 problem details.
 type InternalError = Problem
@@ -1359,8 +1353,6 @@ type PostEventResponse struct {
 	ApplicationproblemJSON400 *BadRequest
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
 	ApplicationproblemJSON401 *Unauthorized
-	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
-	ApplicationproblemJSON403 *Forbidden
 	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
 	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSON413 the response for an HTTP 413 `application/problem+json` response
@@ -1395,11 +1387,6 @@ func (r PostEventResponse) GetApplicationproblemJSON400() *BadRequest {
 // GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
 func (r PostEventResponse) GetApplicationproblemJSON401() *Unauthorized {
 	return r.ApplicationproblemJSON401
-}
-
-// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
-func (r PostEventResponse) GetApplicationproblemJSON403() *Forbidden {
-	return r.ApplicationproblemJSON403
 }
 
 // GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
@@ -1893,13 +1880,6 @@ func ParsePostEventResponse(rsp *http.Response) (*PostEventResponse, error) {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest Forbidden
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest Problem
@@ -2466,8 +2446,6 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
 
-type ForbiddenApplicationProblemPlusJSONResponse Problem
-
 type InternalErrorApplicationProblemPlusJSONResponse Problem
 
 type NotFoundApplicationProblemPlusJSONResponse Problem
@@ -2550,22 +2528,6 @@ func (response PostEvent401ApplicationProblemPlusJSONResponse) VisitPostEventRes
 		w.Header().Set("WWW-Authenticate", fmt.Sprint(*response.Headers.WWWAuthenticate))
 	}
 	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type PostEvent403ApplicationProblemPlusJSONResponse struct {
-	ForbiddenApplicationProblemPlusJSONResponse
-}
-
-func (response PostEvent403ApplicationProblemPlusJSONResponse) VisitPostEventResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
