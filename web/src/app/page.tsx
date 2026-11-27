@@ -7,7 +7,7 @@ import {
   StatusBadge,
 } from "@/components/monitoring";
 import { useJobs } from "@/lib/api-hooks";
-import { formatTime } from "@/lib/format-monitoring";
+import { formatDuration, formatTime } from "@/lib/format-monitoring";
 
 export default function Home() {
   const { data, error, isLoading, mutate } = useJobs();
@@ -33,7 +33,7 @@ export default function Home() {
                   Статус
                 </th>
                 <th scope="col" className="px-5 py-3 font-medium">
-                  Последний старт (UTC)
+                  Последний запуск (UTC)
                 </th>
                 <th scope="col" className="px-5 py-3 font-medium">
                   Срок следующего старта (UTC)
@@ -57,8 +57,23 @@ export default function Home() {
                   <td className="px-5 py-4">
                     <StatusBadge state={job.state} />
                   </td>
-                  <td className="px-5 py-4 whitespace-nowrap tabular-nums">
-                    {formatTime(job.last_run?.started_at ?? null)}
+                  <td className="px-5 py-4">
+                    {job.last_run ? (
+                      <div className="space-y-1">
+                        <div className="whitespace-nowrap tabular-nums">
+                          {job.last_run.started_at === null
+                            ? `Завершение: ${formatTime(job.last_run.finished_at)}`
+                            : `Старт: ${formatTime(job.last_run.started_at)}`}
+                        </div>
+                        <StatusBadge state={job.last_run.status} />
+                        <div className="text-xs text-slate-600 tabular-nums">
+                          Длительность:{" "}
+                          {formatDuration(job.last_run.duration_ms)}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600">Запусков пока нет</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 whitespace-nowrap tabular-nums">
                     {formatTime(job.next_start_due_at)}

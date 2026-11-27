@@ -12,11 +12,11 @@ const statuses: Record<State, { label: string; color: string }> = {
   succeeded: { label: "Успешно", color: "bg-emerald-50 text-emerald-800" },
   failed: { label: "Ошибка", color: "bg-rose-50 text-rose-800" },
   finish_overdue: {
-    label: "Завершение просрочено",
+    label: "нет подтверждения завершения в срок",
     color: "bg-amber-50 text-amber-900",
   },
   start_overdue: {
-    label: "Старт просрочен",
+    label: "нет ожидаемого запуска",
     color: "bg-amber-50 text-amber-900",
   },
 };
