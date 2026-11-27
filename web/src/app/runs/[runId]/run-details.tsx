@@ -78,7 +78,7 @@ function DetailList({ fields }: { fields: [string, string | number][] }) {
       {fields.map(([label, value]) => (
         <div key={label}>
           <dt className="text-muted-foreground text-sm">{label}</dt>
-          <dd className="mt-1 font-medium break-words tabular-nums">{value}</dd>
+          <dd className="mt-1 font-medium wrap-break-word tabular-nums">{value}</dd>
         </div>
       ))}
     </dl>

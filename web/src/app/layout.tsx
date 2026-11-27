@@ -27,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-screen">
         <header className="bg-card border-b">
-          <div className="mx-auto flex min-h-16 max-w-[90rem] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-8">
+          <div className="mx-auto flex min-h-16 max-w-360 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-8">
             <div className="flex items-center gap-3 sm:gap-5">
               <Link
                 href="/"
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[90rem] px-4 py-7 sm:px-8 sm:py-10">
+        <main className="mx-auto max-w-360 px-4 py-7 sm:px-8 sm:py-10">
           {children}
         </main>
       </body>

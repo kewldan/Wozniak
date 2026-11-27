@@ -30,7 +30,7 @@ export default function Home() {
       )}
       {data && data.items.length > 0 && (
         <div className="bg-card overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[46rem] text-left text-sm">
+          <table className="w-full min-w-184 text-left text-sm">
             <thead className="bg-muted border-b">
               <tr>
                 <th scope="col" className="w-[27%] px-5 py-3.5 font-semibold">
