@@ -16,7 +16,7 @@ export function JobDetails({ jobId }: { jobId: string }) {
 
   return (
     <div className="space-y-5">
-      <Link href="/" className="text-sm text-blue-800 hover:underline">
+      <Link href="/" className="text-link text-sm hover:underline">
         ← Все задачи
       </Link>
 
@@ -37,7 +37,7 @@ export function JobDetails({ jobId }: { jobId: string }) {
               </h1>
               <StatusBadge state={job.state} />
             </div>
-            <p className="mt-1 text-sm text-slate-600">{job.id}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{job.id}</p>
           </div>
 
           <RunHistory key={jobId} jobId={jobId} />
@@ -62,9 +62,9 @@ function RunHistory({ jobId }: { jobId: string }) {
         <PageMessage>У этой задачи пока нет запусков.</PageMessage>
       )}
       {data && data.items.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border bg-white">
+        <div className="bg-card overflow-x-auto rounded-xl border">
           <table className="w-full text-left text-sm">
-            <thead className="border-b bg-slate-50 text-slate-600">
+            <thead className="bg-muted text-muted-foreground border-b">
               <tr>
                 <th scope="col" className="px-5 py-3 font-medium">
                   Старт (UTC)
@@ -80,16 +80,16 @@ function RunHistory({ jobId }: { jobId: string }) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-border divide-y">
               {data.items.map((run) => (
-                <tr key={run.run_id} className="hover:bg-slate-50">
+                <tr key={run.run_id} className="hover:bg-muted/60">
                   <th
                     scope="row"
                     className="px-5 py-4 text-left whitespace-nowrap"
                   >
                     <Link
                       href={`/runs/${encodeURIComponent(run.run_id)}`}
-                      className="font-semibold text-blue-800 tabular-nums hover:underline"
+                      className="text-link font-semibold tabular-nums hover:underline"
                     >
                       {run.started_at
                         ? formatTime(run.started_at)
@@ -99,7 +99,7 @@ function RunHistory({ jobId }: { jobId: string }) {
                   <td className="px-5 py-4">
                     <StatusBadge state={run.status} />
                     {run.late && run.finished_at && (
-                      <div className="mt-1 text-xs text-amber-900">
+                      <div className="mt-1 text-xs text-amber-900 dark:text-amber-200">
                         С опозданием
                       </div>
                     )}

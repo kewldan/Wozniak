@@ -18,7 +18,7 @@ export function RunDetails({ runId }: { runId: string }) {
       {run && (
         <Link
           href={`/jobs/${encodeURIComponent(run.job_id)}`}
-          className="text-sm text-blue-800 hover:underline"
+          className="text-link text-sm hover:underline"
         >
           ← К истории задачи
         </Link>
@@ -31,7 +31,7 @@ export function RunDetails({ runId }: { runId: string }) {
           </h1>
           {run && <StatusBadge state={run.status} />}
         </div>
-        <p className="mt-1 font-mono text-sm break-all text-slate-600">
+        <p className="text-muted-foreground mt-1 font-mono text-sm break-all">
           {runId}
         </p>
       </div>
@@ -74,11 +74,13 @@ export function RunDetails({ runId }: { runId: string }) {
 
 function DetailList({ fields }: { fields: [string, string | number][] }) {
   return (
-    <dl className="grid gap-x-6 gap-y-4 rounded-xl border bg-white p-5 sm:grid-cols-2">
+    <dl className="bg-card grid gap-x-6 gap-y-4 rounded-xl border p-5 sm:grid-cols-2">
       {fields.map(([label, value]) => (
         <div key={label}>
-          <dt className="text-sm text-slate-600">{label}</dt>
-          <dd className="mt-1 font-medium break-words tabular-nums">{value}</dd>
+          <dt className="text-muted-foreground text-sm">{label}</dt>
+          <dd className="mt-1 font-medium wrap-break-word tabular-nums">
+            {value}
+          </dd>
         </div>
       ))}
     </dl>
