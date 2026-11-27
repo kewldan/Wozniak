@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
-import Image from "next/image";
 import Link from "next/link";
-import darkLogo from "@/assets/wozniak-dark.png";
 import { ThemeToggle, UtcClock } from "@/components/header-controls";
+import { Logo } from "@/components/logo";
 import { themeInitializationScript } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -33,19 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 href="/"
                 className="flex items-center gap-2.5 text-base font-semibold tracking-tight sm:text-lg"
               >
-                <span
-                  className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-950 text-white dark:hidden"
-                  aria-hidden="true"
-                >
-                  W
-                </span>
-                <Image
-                  src={darkLogo}
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="hidden size-9 shrink-0 rounded-[36%] dark:block"
-                />
+                <Logo className="size-9 shrink-0" />
                 Wozniak
               </Link>
               <nav
