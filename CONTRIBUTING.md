@@ -284,7 +284,10 @@ Inside the Dev Container, from the repository root:
 |------|---------|
 | Build Go binaries into `bin/` | `make build` |
 | Run Go tests | `make test` |
-| Regenerate database code (sqlc) | `make generate` |
+| Regenerate API code from `api/openapi.yaml` | `make generate-api` |
+| Regenerate database code (sqlc) | `make generate-db` |
+| Regenerate all code | `make generate` |
+| Lint the API spec | `make api-lint` |
 | Web panel dev server (port 3000) | `make web-dev` |
 | Lint and check formatting (web) | `cd web && bun run lint` |
 | Fix formatting and imports (web) | `cd web && bun run format` |
@@ -293,6 +296,24 @@ Inside the Dev Container, from the repository root:
 | Open the dev database | `psql "$WOZNIAK_DATABASE_URL"` |
 
 Files are formatted on save: Go with `gofmt`, the web panel with Biome.
+
+### Web panel data
+
+The panel uses contract-shaped mock data by default. Run `make web-dev`
+and open <http://localhost:3000> to browse jobs, run history and run
+details without the Go API.
+
+Once the Go API is running, set `NEXT_PUBLIC_API_MODE=real` in the root
+`.env` and rebuild the Compose stack with `docker compose up -d --build`.
+Open the panel through nginx (port 8080 by default), which forwards
+`/api/` to Go. The setting is read when the web image is built.
+
+Regenerate the panel's TypeScript API types after OpenAPI changes:
+
+```bash
+cd web
+bunx openapi-typescript ../api/openapi.yaml -o src/lib/api-types.ts
+```
 
 ### Running the full stack
 

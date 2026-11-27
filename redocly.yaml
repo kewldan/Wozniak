@@ -1,0 +1,8 @@
+extends:
+  - recommended
+
+rules:
+  # The documented server is the local Compose stack.
+  no-server-example.com: off
+  # Listing jobs and the health check have no client errors to report.
+  operation-4xx-response: off

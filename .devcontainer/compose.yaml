@@ -11,6 +11,9 @@ services:
       - ..:/workspaces/wozniak:cached
     environment:
       WOZNIAK_DATABASE_URL: postgres://wozniak:wozniak@db:5432/wozniak?sslmode=disable
+      WOZNIAK_JOBS_FILE: /workspaces/wozniak/config/jobs.example.yaml
+      WOZNIAK_TOKEN: dev-token-for-local-development-only
+      WOZNIAK_URL: http://localhost:8080
     depends_on:
       db:
         condition: service_healthy

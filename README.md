@@ -34,9 +34,11 @@ A web panel shows the current state of every job.
 ## Repository layout
 
 ```
+api/            HTTP API contract (OpenAPI) and request examples
 cmd/            entry points (server, jobrun)
 internal/       server and wrapper packages
 db/             SQL migrations and sqlc queries
+docs/           design documents (configuration, state model)
 web/            web panel
 deploy/         nginx config, systemd units
 examples/       sample job commands
@@ -52,8 +54,10 @@ and Linux, and describes the branch, commit and pull request workflow.
 - `main` is protected: changes land only through pull requests with green CI.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
 
-## Project Team
+## Team
 
-| GitHub Nickname | ISU ID | Email |
-| :-------- | :----- | :-----------------|
-| Kalaymaga | 654321 | cotlu@example.com |
+| Name          | GitHub nickname | Responsibility scope |
+| ------------- | --------------- | -------------------- |
+| Fedor Fomenko | MrFome14        | Frontend development      |
+| Petr Khrapov | k7ndcat        | Backend development     |
+| Maria Shushpanova | Kalaymaga | Backend development |
