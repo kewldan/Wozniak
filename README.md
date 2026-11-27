@@ -60,3 +60,4 @@ and Linux, and describes the branch, commit and pull request workflow.
 | ------------- | --------------- | -------------------- |
 | Fedor Fomenko | MrFome14        | Frontend development      |
 | Petr Khrapov | k7ndcat        | Backend development     |
+| Maria Shushpanova | Kalaymaga | Backend development |
